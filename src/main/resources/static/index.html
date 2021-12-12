@@ -1,0 +1,181 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>Snakes and Ladders Kata. Feature 1 - Moving Your Token</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <style>
+            #board {
+                height: 550px;
+                width: 550px;
+            }
+
+            #board > div {
+                width: 50px;
+                height: 50px;
+                outline: 1px solid green;
+                margin: 0 5px 5px 0;
+                display: inline-block;
+                vertical-align: top;
+                text-align: center;
+                font-size: 50px;
+            }
+
+            #message {
+                color: red;
+            }
+        </style>
+    </head>
+    <body>
+    <script>
+            const uriCreateGame = 'http://localhost:8080/start-game';
+            const uriPlayGame = 'http://localhost:8080/play';
+
+            const bulletSymbol = "&#8226;";
+            const winningMsg = "Congratulations! You WON!!!";
+            const lastSquareIndex = 99;
+
+            let currentTokenPosition;
+
+            let initDetails = {
+                method: 'post',
+                headers: {
+                    "Content-Type": "application/json; charset=utf-8"
+                },
+                mode: "cors"
+            }
+
+            let initDetailsPost = Object.assign({}, initDetails);
+            initDetailsPost.method = 'post';
+
+            let initDetailsGet = Object.assign({}, initDetails);
+            initDetailsGet.method = 'get';
+
+            function startGame() {
+                fetch(uriCreateGame, initDetailsPost)
+                .then(response => {
+                    if (response.status !== 200) {
+                        console.log('Looks like there was a problem. Status Code: ' + response.status);
+                        return;
+                    }
+
+                    return response.json();
+                    }
+                )
+                .then(myJson => {
+                    console.log(JSON.stringify(myJson));
+                    eraseBoard();
+                    drawBoard();
+                    drawToken(myJson);
+                })
+                .catch(err => {
+                    console.log('Fetch Error :-S', err);
+                });
+            }
+
+            function eraseBoard() {
+                let boardDiv = document.getElementById("board");
+                while (boardDiv.firstChild) {
+                    boardDiv.firstChild.remove();
+                }
+            }
+
+            function drawBoard() {
+                clearMessage();
+
+                let boardDiv = document.getElementById("board");
+                for (let i = 0; i < 100; i++) {
+                    var squareDiv = document.createElement("div");
+
+                    boardDiv.appendChild(squareDiv);
+                }
+            }
+
+            function getMsg(){
+                return document.getElementById("message").innerHTML;
+            }
+
+            function setMsg(text){
+                document.getElementById("message").innerHTML = text;
+            }
+
+            function clearElem(elem){
+                elem.innerHTML = "";
+            }
+
+            function clearMessage() {
+                clearElem(document.getElementById("message"));
+            }
+
+            function drawToken(obj) {
+                currentTokenPosition = obj.currentSquare.index - 1;
+                let boardDiv = document.getElementById("board");
+                let currentSquare = boardDiv.childNodes.item(currentTokenPosition);
+                currentSquare.innerHTML = bulletSymbol;
+            }
+
+            function playGame() {
+                fetch(uriPlayGame, initDetailsGet)
+                .then(response => {
+                    if (response.status !== 200) {
+                        console.log('Looks like there was a problem. Status Code: ' + response.status);
+                        if(response.status == 401) {
+                            setMsg("Start New game at first.");
+                        }
+                        return;
+                    }
+
+                    return response.json();
+                    }
+                )
+                .then(myJson => {
+                    console.log(JSON.stringify(myJson));
+                    move(myJson);
+                })
+                .catch(err => {
+                    console.log('Fetch Error :-S', err);
+                });
+            }
+
+            function move(newSquareIndex){
+                if(newSquareIndex == 777){
+                    if(getMsg != winningMsg){
+                        setMsg(winningMsg);
+                        newSquareIndex = 100;
+                    } else {
+                        return;
+                    }
+                } else {
+                    showRollMessage(newSquareIndex);
+                }
+
+                let boardDiv = document.getElementById("board");
+                clearCurrentTokenPosition(boardDiv);
+                setNewTokenPosition(newSquareIndex - 1, boardDiv);
+            }
+
+            function showRollMessage(newSquareIndex){
+                let rollResult = newSquareIndex - 1 - currentTokenPosition;
+                let suffix = rollResult == 1 ? " space." : " spaces.";
+                setMsg("You rolled a die and moved " + rollResult + "" + suffix);
+            }
+
+            function clearCurrentTokenPosition(boardDiv){
+                let currentSquare = boardDiv.childNodes.item(currentTokenPosition);
+                clearElem(currentSquare);
+            }
+
+            function setNewTokenPosition(newSquareIndex, boardDiv){
+                let currentSquare = boardDiv.childNodes.item(newSquareIndex);
+                currentSquare.innerHTML = bulletSymbol;
+
+                currentTokenPosition = newSquareIndex;
+            }
+        </script>
+        <p>
+            <button id="start-game" onclick="startGame()">New game</button>
+            <button id="dice-rolls" onclick="playGame()">Dice rolls and move</button>
+            <span id="message"></span>
+        </p>
+        <div id="board"></div>
+    </body>
+</html>
